@@ -145,12 +145,32 @@ act1
 
 
 # Task 2: Specify and apply threshold 
-
-
+Calculate mean Step
 
 ```{r}
+act1 <- act1 |>
+    rowwise() |>
+    mutate(
+        stepMean = mean(c(nMinus2, nMinus1, nPlus1, nPlus2))
+    ) |>
+    ungroup()
 
+act1
 ```
+Explore mean step to define threashold
+
+```{r}
+hist(act1$stepMean)
+boxplot(act1$stepMean)
+summary(act1$stepMean)
+```
+The median is 2.94, so we take 2.9 as threashold
+
+```{r}
+act1 <- act1 |>
+    mutate(static = stepMean < 2.9, na.rm = TRUE)
+```
+
 
 # Task 3 : Visualize segmented trajectories
 

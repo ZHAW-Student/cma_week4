@@ -4,6 +4,7 @@ format: html
 editor: visual
 author: "Saskia Gianola"
 message: false
+warning: false
 ---
 
 ## Packages
@@ -19,6 +20,7 @@ library("XML")
 library("lubridate")
 library("ggmap")
 library("geosphere")
+library("SimilarityMeasures")
 ```
 
 ## Input
@@ -168,7 +170,7 @@ The median is 2.94, so we take 2.9 as threashold
 
 ```{r}
 act1 <- act1 |>
-    mutate(static = stepMean < 2.9, na.rm = TRUE)
+    mutate(static = stepMean < 2.9)
 ```
 
 
@@ -186,24 +188,134 @@ ggplot(data = act1, aes(lat, lon, col = static)) +
 ```
 
 # Task 4: Segment-based analysis
-
-
+Now we give each segment a unique ID
 
 ```{r}
+rle_id <- function(vec) {
+    x <- rle(vec)$lengths
+    as.factor(rep(seq_along(x), times = x))
+}
 
+act1 <- act1 |>
+    mutate(segment_id = rle_id(static))
 ```
 
-# Task 5: Similarity measures
+Color by segement ID
+```{r}
+act1_filter <- act1 |>
+    filter(!static)
 
-
+act1_filter |>
+    ggplot(aes(lat, lon, col = segment_id)) +
+    geom_path() +
+    geom_point() +
+    coord_fixed() +
+    theme(legend.position = "none")
+```
+Group by segment ID and remove shot segments
 
 ```{r}
+act1 |> 
+  group_by(segment_id)
+```
+
+
+# Task 5: Similarity measures
+Now we work with a different dataset called pedestrians. We need to explore that dataset: 
+```{r}
+ped <- read_delim("pedestrian.csv", ",")
+ped <- st_as_sf(ped, coords = c("E", "N"), crs = 2056, remove = FALSE)
+
+later <- lag(ped$geometry)
+now <- ped$geometry
+
+ped$steplength <- distance_by_element(later, now)
+
+difftime_secs <- function(later, now){
+  as.numeric(difftime(later, now, units = "secs"))
+}
+
+now <- ped$DatetimeUTC
+later <- lead(now)
+ped$timelag_sec <- difftime_secs(later, now)
+ped$speed <- ped$steplength/ped$timelag_sec
+
+ped1 <- ped |> 
+  filter(TrajID == 1)
+ped2 <- ped |> 
+  filter(TrajID == 2)
+ped3 <- ped |> 
+  filter(TrajID == 3)
+ped4 <- ped |> 
+  filter(TrajID == 4)
+ped5 <- ped |> 
+  filter(TrajID == 5)
+ped6 <- ped |> 
+  filter(TrajID == 6)
+
+p1 <- ggplot(ped1, aes(E,N, col = speed)) +
+  geom_point() +
+  geom_path()
+p2 <- ggplot(ped2, aes(E,N, col = speed)) +
+  geom_point() +
+  geom_path()
+p3 <- ggplot(ped3, aes(E,N, col = speed)) +
+  geom_point() +
+  geom_path()
+p4 <- ggplot(ped4, aes(E,N, col = speed)) +
+  geom_point() +
+  geom_path()
+p5 <- ggplot(ped5, aes(E,N, col = speed)) +
+  geom_point() +
+  geom_path()
+p6 <- ggplot(ped6, aes(E,N, col = speed)) +
+  geom_point() +
+  geom_path()
+
+
+```
+to plot all the six paths i used the function from http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/ 
+```{r}
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+multiplot(p1, p2, p3, p4, p5, p6, cols = 3)
 
 ```
 
 # Task 6: Calculate similarity
-
-
 
 ```{r}
 

@@ -177,6 +177,11 @@ act1 <- act1 |>
 
 
 ```{r}
+ggplot(data = act1, aes(lat, lon, col = static)) +
+    geom_path() +
+    geom_point() +
+    coord_equal() +
+    theme(legend.position = "bottom")
 
 ```
 

@@ -13,6 +13,12 @@ library("readr")
 library("dplyr")
 library("sf")
 library("ggplot2")
+library("tidyverse")
+library("here")
+library("XML")
+library("lubridate")
+library("ggmap")
+library("geosphere")
 ```
 
 ## Input
@@ -85,5 +91,96 @@ sabi_filter |>
     geom_point() +
     coord_fixed() +
     theme(legend.position = "bottom")
+```
+
+# Task 1: Segmentation
+Load and prepare data
+```{r}
+act1_parsed <- htmlTreeParse(file = "activities/11034695746.gpx", useInternalNodes = TRUE)
+act1_parsed
+
+# get coordinates
+coords <- xpathSApply(doc = act1_parsed, path = "//trkpt", fun = xmlAttrs)
+
+# get elevation
+elevation <- xpathSApply(doc = act1_parsed, path = "//trkpt/ele", fun = xmlValue)
+
+# get time
+time <- xpathApply(doc = act1_parsed, path = "//trkpt/time", fun = xmlValue)
+
+
+# built data frame
+act1_df <- data.frame(
+  lat = as.numeric(coords["lat", ]),
+  lon = as.numeric(coords["lon", ]),
+  ts_POSIXct = ymd_hms(time, tz = "UTC"),
+  elevation = as.numeric(elevation)
+)
+act1_df
+
+act1 <- act1_df |> 
+  st_as_sf(coords = c("lat", "lon"), crs = 4326 , remove = FALSE)
+
+```
+
+Specify temporal window and measure distance in my data
+
+```{r}
+distance_by_element <- function(later, now) {
+  as.numeric(
+    st_distance(later, now, by_element = TRUE)
+  )
+}
+
+act1 <- act1 |>
+    mutate(
+        nMinus2 = distance_by_element(lag(geometry, 2), geometry),  
+        nMinus1 = distance_by_element(lag(geometry, 1), geometry),  
+        nPlus1  = distance_by_element(geometry, lead(geometry, 1)), 
+        nPlus2  = distance_by_element(geometry, lead(geometry, 2))  
+    )
+
+act1
+```
+
+
+# Task 2: Specify and apply threshold 
+
+
+
+```{r}
+
+```
+
+# Task 3 : Visualize segmented trajectories
+
+
+
+```{r}
+
+```
+
+# Task 4: Segment-based analysis
+
+
+
+```{r}
+
+```
+
+# Task 5: Similarity measures
+
+
+
+```{r}
+
+```
+
+# Task 6: Calculate similarity
+
+
+
+```{r}
+
 ```
 

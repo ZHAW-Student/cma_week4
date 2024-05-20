@@ -215,8 +215,20 @@ act1_filter |>
 Group by segment ID and remove shot segments
 
 ```{r}
-act1 |> 
-  group_by(segment_id)
+act1_id_filter <- act1 |>
+  group_by(segment_id) |> 
+  summarise(min = min(stepMean),
+            max = max(stepMean),
+            mean = mean(stepMean),
+            sum = sum(stepMean))
+plot(act1_id_filter$sum)
+boxplot(act1_id_filter$sum)
+
+act1_id_filter <- act1_id_filter |> 
+  mutate(
+    long_step = sum > 3
+  )
+
 ```
 
 

@@ -317,7 +317,140 @@ multiplot(p1, p2, p3, p4, p5, p6, cols = 3)
 
 # Task 6: Calculate similarity
 
+I think that ID 4 is most dissimilar to others. I expect IDs 2 and 3 to be similar as well as 1 and 6 as they show similar paths and similar amount of points. ID 5 could be similar to 1 and 6 if the outliner is removed or does not have to much influence.    
+
+As all similarity calculations need a matrix as an input, we need to extract the single trajectories from the dataset and save it as a matrix. 
+
 ```{r}
+ped1_matrix <- ped1[,c(2,3)]
+ped1_matrix <- st_drop_geometry(ped1_matrix)
+ped1_matrix <- as.matrix(ped1_matrix)
+
+ped2_matrix <- ped2[,c(2,3)]
+ped2_matrix <- st_drop_geometry(ped2_matrix)
+ped2_matrix <- as.matrix(ped2_matrix)
+
+ped3_matrix <- ped3[,c(2,3)]
+ped3_matrix <- st_drop_geometry(ped3_matrix)
+ped3_matrix <- as.matrix(ped3_matrix)
+
+ped4_matrix <- ped4[,c(2,3)]
+ped4_matrix <- st_drop_geometry(ped4_matrix)
+ped4_matrix <- as.matrix(ped4_matrix)
+
+ped5_matrix <- ped5[,c(2,3)]
+ped5_matrix <- st_drop_geometry(ped5_matrix)
+ped5_matrix <- as.matrix(ped5_matrix)
+
+ped6_matrix <- ped6[,c(2,3)]
+ped6_matrix <- st_drop_geometry(ped6_matrix)
+ped6_matrix <- as.matrix(ped6_matrix)
 
 ```
 
+Now I can calculate similarity between trajectories with the newly created matrices. I start with the DTW.
+```{r}
+dtw1_2 <- DTW(ped1_matrix, ped2_matrix, pointSpacing = 2)
+dtw1_3 <- DTW(ped1_matrix, ped3_matrix, pointSpacing = 2)
+dtw1_4 <- DTW(ped1_matrix, ped4_matrix, pointSpacing = 2)
+dtw1_5 <- DTW(ped1_matrix, ped5_matrix, pointSpacing = 2)
+dtw1_6 <- DTW(ped1_matrix, ped6_matrix, pointSpacing = 2)
+
+dtw1_2
+dtw1_3 
+dtw1_4
+dtw1_5 
+dtw1_6
+```
+
+The results from the DTW show that 1 is most similar to 4 and 6. 2 and 3 show very high values, whereas 5 has a value of -1. Now we take a look at the Edit Dist
+
+```{r}
+ed1_2 <- EditDist(ped1_matrix, ped2_matrix, pointDistance = 20)
+ed1_3 <- EditDist(ped1_matrix, ped3_matrix, pointDistance = 20)
+ed1_4 <- EditDist(ped1_matrix, ped4_matrix, pointDistance = 20)
+ed1_5 <- EditDist(ped1_matrix, ped5_matrix, pointDistance = 20)
+ed1_6 <- EditDist(ped1_matrix, ped6_matrix, pointDistance = 20)
+
+ed1_2
+ed1_3 
+ed1_4
+ed1_5 
+ed1_6
+```
+
+This similarity measure shows that trajectory 1 is very similar to 5 and 6. 2, 3, and 4 are less similar. Next up is the Frechet.   
+```{r}
+fre1_2 <- Frechet(ped1_matrix, ped2_matrix, testLeash = -1)
+fre1_3 <- Frechet(ped1_matrix, ped3_matrix, testLeash = -1)
+fre1_4 <- Frechet(ped1_matrix, ped4_matrix, testLeash = -1)
+fre1_5 <- Frechet(ped1_matrix, ped5_matrix, testLeash = -1)
+fre1_6 <- Frechet(ped1_matrix, ped6_matrix, testLeash = -1)
+
+fre1_2
+fre1_3 
+fre1_4
+fre1_5 
+fre1_6
+
+```
+
+The frechet tells us that 1 is similar to 2 and 6, whereas 3, 4 and 5 are less similar. Last we test the LCSS. 
+
+```{r}
+lcss1_2 <- LCSS(ped1_matrix, ped2_matrix, pointSpacing = 2, pointDistance = 20)
+lcss1_3 <- LCSS(ped1_matrix, ped3_matrix, pointSpacing = 2, pointDistance = 20)
+lcss1_4 <- LCSS(ped1_matrix, ped4_matrix, pointSpacing = 2, pointDistance = 20)
+lcss1_5 <- LCSS(ped1_matrix, ped5_matrix, pointSpacing = 2, pointDistance = 20)
+lcss1_6 <- LCSS(ped1_matrix, ped6_matrix, pointSpacing = 2, pointDistance = 20)
+
+lcss1_2
+lcss1_3 
+lcss1_4
+lcss1_5 
+lcss1_6
+```
+
+This measure shows that 1 is most similar to 2 and 3, whereas 4, 5 and 6 are less similar.
+
+Finally, I plot all the results to compare them. 
+
+```{r}
+similarity <- data.frame(
+  dtw = c(dtw1_2, dtw1_3, dtw1_4, dtw1_5, dtw1_6),
+  edit_dist = c(ed1_2, ed1_3, ed1_4, ed1_5, ed1_6),
+  frechet = c(fre1_2, fre1_3, fre1_4, fre1_5, fre1_6),
+  lcss = c(lcss1_2, lcss1_3, lcss1_4, lcss1_5, lcss1_6),
+  traj = c("1_2","1_3","1_4","1_5","1_6")
+)
+
+plot_dtw <- ggplot(similarity, aes(x = traj, y = dtw)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "DTW"
+  )
+
+plot_ed <- ggplot(similarity, aes(x = traj, y = edit_dist)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Edit Dist"
+  )
+
+
+plot_fre <- ggplot(similarity, aes(x = traj, y = frechet)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Frechet"
+  )
+
+plot_lcss <- ggplot(similarity, aes(x = traj, y = lcss)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "LCSS"
+  )
+
+multiplot(plot_dtw, plot_ed, plot_fre, plot_lcss, cols = 2)
+
+```
+
+The results are similar to the ones presented on GitHub, the differences might be caused by different use of the parameters within the similariy measures (point distance etc.) Generally it shows that in order to get a conclusive statement about similarity of trajectories, a well-founded knowledge of the data and the similarity measures is needed. 
